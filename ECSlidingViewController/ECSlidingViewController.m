@@ -98,6 +98,7 @@
 - (instancetype)initWithTopViewController:(UIViewController *)topViewController {
     self = [self initWithNibName:nil bundle:nil];
     if (self) {
+        [self setup];
         self.topViewController = topViewController;
     }
     
