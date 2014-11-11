@@ -114,30 +114,26 @@
 
 #pragma mark - UIViewController
 
-- (void)awakeFromNib {
-    if (self.topViewControllerStoryboardId) {
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+
+    if (self.topViewControllerStoryboardId && !self.topViewController) {
         self.topViewController = [self.storyboard instantiateViewControllerWithIdentifier:self.topViewControllerStoryboardId];
     }
-    
-    if (self.underLeftViewControllerStoryboardId) {
+
+    if (self.underLeftViewControllerStoryboardId && !self.underLeftViewController) {
         self.underLeftViewController = [self.storyboard instantiateViewControllerWithIdentifier:self.underLeftViewControllerStoryboardId];
     }
-    
-    if (self.underRightViewControllerStoryboardId) {
+
+    if (self.underRightViewControllerStoryboardId && !self.underRightViewController) {
         self.underRightViewController = [self.storyboard instantiateViewControllerWithIdentifier:self.underRightViewControllerStoryboardId];
     }
-}
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
     if (!self.topViewController) [NSException raise:@"Missing topViewController"
                                              format:@"Set the topViewController before loading ECSlidingViewController"];
     self.topViewController.view.frame = [self topViewCalculatedFrameForPosition:self.currentTopViewPosition];
     [self.view addSubview:self.topViewController.view];
-}
 
-- (void)viewWillAppear:(BOOL)animated {
-    [super viewWillAppear:animated];
     [self.topViewController beginAppearanceTransition:YES animated:animated];
     
     if (self.currentTopViewPosition == ECSlidingViewControllerTopViewPositionAnchoredLeft) {
@@ -941,6 +937,100 @@
 
 - (void)notifyWhenInteractionEndsUsingBlock:(void(^)(id<UIViewControllerTransitionCoordinatorContext>context))handler {
     self.coordinatorInteractionEnded = handler;
+}
+
+#pragma mark - UIStateRestoring
+
+#define TopViewControllerKey @"topViewController"
+#define UnderLeftViewControllerKey @"underLeftViewController"
+#define UnderRightViewControllerKey @"underRightViewController"
+#define AnchorLeftPeekAmountKey @"anchorLeftPeekAmount"
+#define AnchorLeftRevealAmountKey @"anchorLeftRevealAmount"
+#define AnchorRightPeekAmountKey @"anchorRightPeekAmount"
+#define AnchorRightRevealAmountKey @"anchorRightRevealAmount"
+#define TopViewControllerStoryboardIdKey @"topViewControllerStoryboardId"
+#define UnderLeftViewControllerStoryboardIdKey @"underLeftViewControllerStoryboardId"
+#define UnderRightViewControllerStoryboardIdKey @"underRightViewControllerStoryboardId"
+#define DelegateKey @"delegate"
+#define TopViewAnchoredGestureKey @"topViewAnchoredGesture"
+#define CurrentTopViewPositionKey @"currentTopViewPosition"
+#define CustomAnchoredGesturesKey @"customAnchoredGestures"
+#define DefaultTransitionDurationKey @"defaultTransitionDuration"
+
+- (void)encodeRestorableStateWithCoder:(NSCoder *)coder
+{
+    [coder encodeObject:self.topViewController forKey:TopViewControllerKey];
+    [coder encodeObject:self.underLeftViewController forKey:UnderLeftViewControllerKey];
+    [coder encodeObject:self.underRightViewController forKey:UnderRightViewControllerKey];
+
+    [coder encodeDouble:self.anchorLeftPeekAmount forKey:AnchorLeftPeekAmountKey];
+    [coder encodeDouble:self.anchorLeftRevealAmount forKey:AnchorLeftRevealAmountKey];
+    [coder encodeDouble:self.anchorRightPeekAmount forKey:AnchorRightPeekAmountKey];
+    [coder encodeDouble:self.anchorRightRevealAmount forKey:AnchorRightRevealAmountKey];
+
+    [coder encodeObject:self.topViewControllerStoryboardId forKey:TopViewControllerStoryboardIdKey];
+    [coder encodeObject:self.underLeftViewControllerStoryboardId forKey:UnderLeftViewControllerStoryboardIdKey];
+    [coder encodeObject:self.underRightViewControllerStoryboardId forKey:UnderRightViewControllerStoryboardIdKey];
+
+    [coder encodeObject:self.delegate forKey:DelegateKey];
+
+    [coder encodeInteger:self.topViewAnchoredGesture forKey:TopViewAnchoredGestureKey];
+    [coder encodeInteger:self.currentTopViewPosition forKey:CurrentTopViewPositionKey];
+    [coder encodeObject:self.customAnchoredGestures forKey:CustomAnchoredGesturesKey];
+    [coder encodeDouble:self.defaultTransitionDuration forKey:DefaultTransitionDurationKey];
+
+    [super encodeRestorableStateWithCoder:coder];
+}
+
+- (void)decodeRestorableStateWithCoder:(NSCoder *)coder
+{
+    [super decodeRestorableStateWithCoder:coder];
+
+    UIViewController *viewController;
+    viewController = [coder decodeObjectForKey:TopViewControllerKey];
+    if (viewController && ![viewController.restorationIdentifier isEqualToString:self.topViewController.restorationIdentifier]) {
+        self.topViewController = viewController;
+    }
+
+    viewController = [coder decodeObjectForKey:UnderLeftViewControllerKey];
+    if (viewController && ![viewController.restorationIdentifier isEqualToString:self.underLeftViewController.restorationIdentifier]) {
+        self.underLeftViewController = viewController;
+    }
+
+    viewController = [coder decodeObjectForKey:UnderRightViewControllerKey];
+    if (viewController && ![viewController.restorationIdentifier isEqualToString:self.underRightViewController.restorationIdentifier]) {
+        self.underRightViewController = viewController;
+    }
+
+    self.anchorLeftPeekAmount = [coder decodeDoubleForKey:AnchorLeftPeekAmountKey];
+    self.anchorLeftRevealAmount = [coder decodeDoubleForKey:AnchorLeftRevealAmountKey];
+    self.anchorRightPeekAmount = [coder decodeDoubleForKey:AnchorRightPeekAmountKey];
+    self.anchorRightRevealAmount = [coder decodeDoubleForKey:AnchorRightRevealAmountKey];
+
+    self.topViewControllerStoryboardId = [coder decodeObjectForKey:TopViewControllerStoryboardIdKey];
+    self.underLeftViewControllerStoryboardId = [coder decodeObjectForKey:UnderLeftViewControllerStoryboardIdKey];
+    self.underRightViewControllerStoryboardId = [coder decodeObjectForKey:UnderRightViewControllerStoryboardIdKey];
+
+    self.delegate = [coder decodeObjectForKey:DelegateKey];
+
+    self.topViewAnchoredGesture = [coder decodeIntegerForKey:TopViewAnchoredGestureKey];
+    self.customAnchoredGestures = [coder decodeObjectForKey:CustomAnchoredGesturesKey];
+    self.defaultTransitionDuration = [coder decodeDoubleForKey:DefaultTransitionDurationKey];
+
+    ECSlidingViewControllerTopViewPosition currentTopViewPosition = [coder decodeIntegerForKey:CurrentTopViewPositionKey];
+    switch (currentTopViewPosition) {
+        case ECSlidingViewControllerTopViewPositionAnchoredLeft:
+            [self anchorTopViewToLeftAnimated:NO];
+            break;
+        case ECSlidingViewControllerTopViewPositionAnchoredRight:
+            [self anchorTopViewToRightAnimated:NO];
+            break;
+        case ECSlidingViewControllerTopViewPositionCentered:
+            [self resetTopViewAnimated:NO];
+            break;
+        default:
+            break;
+    }
 }
 
 @end
